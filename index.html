@@ -10,7 +10,7 @@
   <body>
     <div id="app">
       <v-mapbox
-        access-token="***********"
+        access-token="***************"
         map-style="mapbox://styles/mapbox/light-v9"
         :center="[5.507, 52.078]"
         :zoom="7.3"
@@ -32,10 +32,25 @@
       </v-mapbox>
       <div id="card">
         <v-card id="information" class="col-md-5">
-
-          <select v-model="selected">
-            <option name="sourceselect" v-for="(scenario, key) in urls" :value="scenario">{{ scenario}}</option>
-          </select>
+          <div name=sourcediv>
+            <select v-model="selected"
+                    label="Select source"
+                    item-text="name"
+                    item-value="name"
+                    light
+                    single-line
+                    auto
+                    >
+              <option name="sourceselect"
+                v-for="(scenario, key) in urls"
+                :value="scenario"
+                :selected="aquadesk">
+                {{ scenario}}
+              </option>
+              <!-- <option name="sourceselect" value="aquadesk" selected>Aquadesk</option>
+              <option name="sourceselect" value="fews">Fews</option> -->
+            </select>
+          </div>
           <!-- <v-select options="urls" overflow label="Source"></v-select> -->
           <div class="panel-heading"></div>
           <div id="list">

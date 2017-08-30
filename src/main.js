@@ -53,7 +53,6 @@ function api_source(source_id){
       "features": geojsonarray
     }
   }
-  console.log(source)
   return source
 }
 
@@ -76,9 +75,11 @@ const vm = new Vue({
             "type": "circle",
             "source": api_source("aquadesk"),
             "minzoom": 5,
-            "active": "false",
             "layout": {
               "visibility": "none"
+            },
+            "paint": {
+              "circle-radius": 8
             }
           },
           {
@@ -87,10 +88,13 @@ const vm = new Vue({
             "type": "circle",
             "source": api_source("fews"),
             "minzoom": 5,
-            "active": "false",
             "layout": {
               "visibility": "none"
+            },
+            "paint": {
+              "circle-radius": 8
             }
+
           }
       ],
       sources: []
@@ -106,12 +110,6 @@ const vm = new Vue({
   },
   mounted() {
     this.$nextTick(() => {
-      this.$refs.map.map.on(
-        "load", () => {
-        // this.syncLayerVisibility();
-        }
-      )
-
       var popup = new mapboxgl.Popup({
           closeButton: false,
           closeOnClick: false
@@ -127,36 +125,56 @@ const vm = new Vue({
       _.each(this.layers, (layer) => {
         this.$refs.map.map.on('click', layer.id, (e) => {
           $('#details').css('display', 'none')
+          if (layer.id == 'fews'){var searchterm = 'uuid'}
+          else{var searchterm = 'locationCode'}
           var response= $.ajax({
-              url: scenarios.find(x => x.id === layer.id).baseurl + '/timeseries?locationCode=' + e.features[0].properties.code + '&pagesize=3000' ,
+              url: scenarios.find(x => x.id === layer.id).baseurl + '/timeseries?' + searchterm + '=' + e.features[0].properties.code + '&pagesize=3000' ,
               async: false
            }).responseJSON;
-          console.log(e.features[0].properties.code, e.features[0].properties.name)
           var t = $("table#results tbody").empty();
           $('.panel-heading').html("<h6> Information on " + e.features[0].properties.name + "<br>(Code: " + e.features[0].properties.code + ")</h6>")
           try{response.results.forEach(res => {
-            $("<tr><td class='results'>" + res.observationType.quantity + " (" + res.observationType.parameterCode + ")" +  res.observationType.compartment +  res.observationType.qualifier + "</td></tr>" ).appendTo(t)
+            console.log(res)
+            if(typeof(res.observationType) == "string") {
+              var obs= $.ajax({
+                  url: res.observationType ,
+                  async: false
+               }).responseJSON;
+               var quantity = obs.quantity
+            }
+            else{
+              var quantity = res.observationType.quantity
+            }
+            $("<tr><td class='results'>" + quantity + " (" + res.observationType.parameterCode + ") </td></tr>" ).appendTo(t)
               .click(function(data) {
                 $('#details').css('display', 'inline-block')
                 $('#details').empty()
                 $('#details').html()
                 var plt = Bokeh.Plotting;
                 var tools = "pan,crosshair,wheel_zoom,box_zoom,reset,save"
-                var unit = res.observationType.uni
+                var unit = res.observationType.unit
 
                 var ydata= $.ajax({
                     url: res.url + '/data' ,
                     async: false
                  }).responseJSON;
 
-                 var x = []
-                 var y = []
+                var x = []
+                var y = []
+
+                try{var d = new Date(ydata[0].timeStamp)
+                  x.push(d.setDate(d.getDate() + 0.001))}
+                catch(err){var d = new Date(ydata[0].timestamp)
+                  x.push(d.setDate(d.getDate() + 0.))}
+                y.push(ydata[0].value)
 
                 _.each(ydata, function(event){
-                  x.push(new Date(event.timeStamp))
+                  try{x.push(new Date(event.timestamp.slice(0,19)))}
+                  catch(err){x.push(new Date(event.timeStamp.slice(0,19)))}
+
                   y.push(event.value)
                 });
-
+                console.log(x)
                 var source = new Bokeh.ColumnDataSource({ data: { x: x, y: y } });
                 var plot = new plt.figure({
                     title: "Timeseries for " + res.observationType.quantity + " (" + res.observationType.parameterCode + ")",
@@ -203,18 +221,10 @@ const vm = new Vue({
           try{
             this.$refs.map.map.setLayoutProperty(oldScenario, "visibility", "none");
           }
-          catch(err){console.log(err)}
+          catch(err){}
           this.$refs.map.map.setLayoutProperty(newScenario, "visibility", "visible");
       }
     },
   computed: {},
   methods: {}
 });
-// add watchers that are deep
-vm.$watch(
-  "layers",
-  function(layers) {
-    // vm.syncLayerVisibility();
-  },
-  {deep: true}
-);
