@@ -17,16 +17,7 @@ import "./main.scss";
 /* eslint-disable no-new */
 import mapboxgl from 'mapbox-gl';
 
-var scenarios = [
-  {
-    "id": "aquadesk",
-    "baseurl": "http://digitaldelta.aquadesk.nl",
-  },
-  {
-    "id": "fews",
-    "baseurl": "http://tl-tc097.xtr.deltares.nl:8080/fews-web-services/digitaledelta/v1",
-  }]
-
+var scenarios = require("./APIsources.js").scenarios()
 Vue.component('modal', {
   template: '#modal-template'
 })
@@ -68,7 +59,7 @@ const vm = new Vue({
     return {
       urls: url_sources(scenarios),
       selected: _.first(this.urls),
-
+      // initialview: false,
       layers: [{
             "id": "aquadesk",
             "active": true,
@@ -134,7 +125,6 @@ const vm = new Vue({
           var t = $("table#results tbody").empty();
           $('.panel-heading').html("<h6> Information on " + e.features[0].properties.name + "<br>(Code: " + e.features[0].properties.code + ")</h6>")
           try{response.results.forEach(res => {
-            console.log(res)
             if(typeof(res.observationType) == "string") {
               var obs= $.ajax({
                   url: res.observationType ,
@@ -162,19 +152,16 @@ const vm = new Vue({
                 var x = []
                 var y = []
 
-                try{var d = new Date(ydata[0].timeStamp)
-                  x.push(d.setDate(d.getDate() + 0.001))}
-                catch(err){var d = new Date(ydata[0].timestamp)
-                  x.push(d.setDate(d.getDate() + 0.))}
-                y.push(ydata[0].value)
-
                 _.each(ydata, function(event){
-                  try{x.push(new Date(event.timestamp.slice(0,19)))}
-                  catch(err){x.push(new Date(event.timeStamp.slice(0,19)))}
-
+                  try{x.push(new Date(event.timestamp.slice(0, 19)))}
+                  catch(err){x.push(new Date(event.timeStamp.slice(0, 19)))}
                   y.push(event.value)
                 });
-                console.log(x)
+
+                var startdate = new Date(x[0])
+                var enddate = new Date(x.slice(-1)[0])
+                var xdr = new Bokeh.Range1d({start: startdate.setDate(x[0].getDate() - 1),
+                                             end: enddate.setDate(x.slice(-1)[0].getDate() + 1)})
                 var source = new Bokeh.ColumnDataSource({ data: { x: x, y: y } });
                 var plot = new plt.figure({
                     title: "Timeseries for " + res.observationType.quantity + " (" + res.observationType.parameterCode + ")",
@@ -183,8 +170,9 @@ const vm = new Vue({
                     height: 200,
                     background_fill_color: "#F2F2F7",
                     x_axis_type: 'datetime',
-                    y_axis_label: unit
-                });
+                    y_axis_label: unit,
+                    x_range: xdr
+                  });
 
                 var line = new Bokeh.Circle({
                     x: { field: "x" },
@@ -192,7 +180,6 @@ const vm = new Vue({
                     line_color: "#666699",
                     line_width: 2
                 });
-
                 plot.add_glyph(line, source);
                 Bokeh.Plotting.show(plot, document.getElementById('details'));
               })
@@ -218,13 +205,18 @@ const vm = new Vue({
   },
   watch: {
       selected(newScenario, oldScenario) {
-          try{
-            this.$refs.map.map.setLayoutProperty(oldScenario, "visibility", "none");
-          }
+          try{this.$refs.map.map.setLayoutProperty(oldScenario, "visibility", "none");}
           catch(err){}
           this.$refs.map.map.setLayoutProperty(newScenario, "visibility", "visible");
       }
     },
   computed: {},
-  methods: {}
+  methods: {
+  initialview() {
+    this.$refs.map.map.setZoom("7.3")
+    this.$refs.map.map.setPitch("38.50")
+    this.$refs.map.map.setCenter("[5.507, 52.078]")
+    this.$refs.map.map.setBearing("1.43")
+    // this.initialview = null
+  }}
 });
