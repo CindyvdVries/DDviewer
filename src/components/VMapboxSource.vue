@@ -1,3 +1,4 @@
+<!-- Insert sources in mapbox -->
 <template>
 	<div>
     <!-- layer -->

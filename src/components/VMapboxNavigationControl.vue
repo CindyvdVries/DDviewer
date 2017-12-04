@@ -1,3 +1,4 @@
+<!-- Insert navigation tools (zoom) -->
 <template>
 	<div>
     <!-- layer -->

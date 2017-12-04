@@ -1,3 +1,4 @@
+<!-- Inserting a search box  -->
 <template>
 	<div>
     <!-- layer -->

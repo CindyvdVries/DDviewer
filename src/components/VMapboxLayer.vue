@@ -1,3 +1,4 @@
+<!-- Inserting layers on top of mapbox -->
 <template>
 	<div>
   </div>
